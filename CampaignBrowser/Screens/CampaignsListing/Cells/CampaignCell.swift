@@ -8,6 +8,9 @@ import RxSwift
 class CampaignCell: UICollectionViewCell {
 
     private let disposeBag = DisposeBag()
+    
+    static let headerFont = UIFont(name: "HelveticaNeue-Bold", size: 17.0)
+    static let descFont = UIFont(name: "HoeflerText-Regular", size: 12.0)
 
     /** Used to display the campaign's title. */
     @IBOutlet private(set) weak var nameLabel: UILabel!
@@ -49,5 +52,38 @@ class CampaignCell: UICollectionViewCell {
         assert(nameLabel != nil)
         assert(descriptionLabel != nil)
         assert(imageView != nil)
+    }
+    
+    public func reorderComponents(ind: IndexPath)  {
+        let screenSize = UIScreen.main.bounds
+        
+        //let imgFrame = imageView.frame
+        let h1 = (screenSize.width/4) * 3
+        imageView.frame = CGRect(origin: CGPoint(x: 0, y: 0), size: CGSize(width: screenSize.width, height: h1))
+        
+        let lines = nameLabel.text?.getLineCount(forFont: CampaignCell.headerFont!)
+        var h2 = nameLabel.text?.getHeight(forFont: CampaignCell.headerFont!)
+        if lines! > 2{
+            h2 = ((h2!/CGFloat(lines!)) * 2) + 16
+        }
+        nameLabel.frame = CGRect(origin: CGPoint(x: 8, y: h1), size: CGSize(width: nameLabel.frame.size.width, height: h2!))
+        
+        let h3 = descriptionLabel.text?.getHeight(forFont: CampaignCell.descFont!)
+        descriptionLabel.frame = CGRect(origin: CGPoint(x: 0, y: h1+h2!+8), size: CGSize(width: nameLabel.frame.size.width, height: h3!))
+        
+        for constraint in self.nameLabel.constraints {
+            if constraint.identifier == "headerLblConst" {
+                constraint.constant = h2!
+            }
+        }
+        for constraint in self.descriptionLabel.constraints {
+            if constraint.identifier == "descLblConst" {
+                constraint.constant = h3!
+            }
+        }
+        
+        self.nameLabel.layoutIfNeeded()
+        self.descriptionLabel.layoutIfNeeded()
+        
     }
 }

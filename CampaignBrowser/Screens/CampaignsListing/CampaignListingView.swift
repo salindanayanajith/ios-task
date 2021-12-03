@@ -51,6 +51,7 @@ class ListingDataSource: NSObject, UICollectionViewDataSource, UICollectionViewD
     /** The campaigns that need to be displayed. */
     let campaigns: [CampaignListingView.Campaign]
 
+    let disposeBag = DisposeBag()
     /**
      Designated initializer.
 
@@ -73,6 +74,7 @@ class ListingDataSource: NSObject, UICollectionViewDataSource, UICollectionViewD
             campaignCell.moodImage = campaign.moodImage
             campaignCell.name = campaign.name
             campaignCell.descriptionText = campaign.description
+            campaignCell.reorderComponents(ind: indexPath)
         } else {
             assertionFailure("The cell should a CampaignCell")
         }
@@ -81,7 +83,30 @@ class ListingDataSource: NSObject, UICollectionViewDataSource, UICollectionViewD
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: collectionView.frame.size.width, height: 450)
+        let campaign = campaigns[indexPath.item]
+        var img : UIImage?
+        
+        campaign.moodImage
+            .observeOn(MainScheduler.instance)
+            .subscribe(onNext: { image in
+                img = image })
+            .disposed(by: disposeBag)
+
+        var h1 = (collectionView.frame.size.width / 4) * 3
+        if img != nil{
+            h1 = (img!.size.height / img!.size.width ) * collectionView.frame.size.width
+        }
+        var h2 = campaign.name.getHeight(forFont: CampaignCell.headerFont!)
+        let lines = campaign.name.getLineCount(forFont: CampaignCell.headerFont!)
+        if lines > 2{
+            h2 = (h2/CGFloat(lines)) * 2
+        }
+        let h3 = campaign.description.getHeight(forFont: CampaignCell.descFont!)
+        
+        let h = h1 + h2 + h3
+        //print("c\(indexPath.row): (\(h1)+\(h2)+\(h3))=\(h1 + h2 + h3)")
+        
+        return CGSize(width: collectionView.frame.size.width, height: h)
     }
 
 }
@@ -107,5 +132,21 @@ class LoadingDataSource: NSObject, UICollectionViewDataSource, UICollectionViewD
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         return collectionView.frame.size
+    }
+}
+
+extension String{
+    func getHeight(forFont: UIFont) -> CGFloat {
+        let width = UIScreen.main.bounds.width-16
+        let constraintRect = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let boundingBox = self.boundingRect(with: constraintRect, options: .usesLineFragmentOrigin, attributes: [NSAttributedString.Key.font: forFont], context: nil)
+        
+        return ceil(boundingBox.height + 16) // Additional 16 is for 16 added to the label by LabelWithPadding
+    }
+    
+    func getLineCount(forFont: UIFont) -> Int{
+        let h = getHeight(forFont: forFont)
+        let lines = Int(h / forFont.lineHeight)
+        return lines
     }
 }
